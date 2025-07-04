@@ -55,6 +55,9 @@ func (j *jsonRPCServer) Start(port int) error {
 }
 
 func (j *jsonRPCServer) Register(handler RPCHandler) {
+	if _, ok := j.methods[handler.MethodName()]; ok {
+		panic("method all registered")
+	}
 	j.methods[handler.MethodName()] = handler
 }
 

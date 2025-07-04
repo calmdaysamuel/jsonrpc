@@ -31,8 +31,8 @@ func NewGeneralError(id *string, message string, code int, details ...Detail) Ge
 	}
 }
 
-func (p GeneralError) JSONRPCBytes() []byte {
-	b, err := json.Marshal(p)
+func (g GeneralError) JSONRPCBytes() []byte {
+	b, err := json.Marshal(g)
 	if err != nil {
 		panic(err)
 	}

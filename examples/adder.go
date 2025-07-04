@@ -16,7 +16,7 @@ func main() {
 	}
 }
 func Adder() jsonrpc.Server {
-	s := jsonrpc.New()
+	s := jsonrpc.New(jsonrpc.WithMaxBatchSize(15), jsonrpc.WithMaxRequestSize(2*1024*1024), jsonrpc.WithBatchRequestParallelism(16))
 	s.Register(&adder{})
 	return s
 }

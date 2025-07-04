@@ -27,6 +27,15 @@ func New(options ...Option) Server {
 	}
 	mux.Handle("/rpc", handler)
 	mux.Handle("/rpc/", handler)
+	mux.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("/readiness", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("/liveliness", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+	})
 	return handler
 }
 

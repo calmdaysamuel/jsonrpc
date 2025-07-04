@@ -19,7 +19,7 @@ func NewInvalidRequestError(id *string, details ...Detail) InvalidRequestError {
 	}
 	return InvalidRequestError{
 		JsonRPC:  "2.0",
-		RpcError: RPCError{Code: -32600, Message: "Invalid Request"},
+		RpcError: RPCError{Code: -32600, Message: "Invalid Request", Data: detailsMap},
 		ID:       id,
 	}
 }

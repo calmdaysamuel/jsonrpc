@@ -19,7 +19,7 @@ func NewMethodNotFoundError(details ...Detail) MethodNotFoundError {
 	}
 	return MethodNotFoundError{
 		JsonRPC:  "2.0",
-		RpcError: RPCError{Code: -32601, Message: "Method not found"},
+		RpcError: RPCError{Code: -32601, Message: "Method not found", Data: detailsMap},
 		ID:       nil,
 	}
 }

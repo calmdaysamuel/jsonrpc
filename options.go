@@ -28,7 +28,7 @@ func WithBatchRequestParallelism(parallelism int) Option {
 	}
 }
 
-func WitchMaxBatchSize(batchSize int) Option {
+func WithMaxBatchSize(batchSize int) Option {
 	return func(opts *serverOpts) {
 		opts.maxBatchSize = batchSize
 	}

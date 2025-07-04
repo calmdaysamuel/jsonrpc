@@ -11,6 +11,9 @@ import (
 	"sync"
 )
 
+// New returns a json-rpc server with rational defaults.
+// Use the [Register] method to add support for a new rpc call.
+// Use the [Start] method to start the server
 func New(options ...Option) Server {
 	mux := http.NewServeMux()
 	opts := defaultOpts()
@@ -28,8 +31,12 @@ func New(options ...Option) Server {
 }
 
 type RPCHandler interface {
+	// MethodName return the name of the RPC server
 	MethodName() string
+	// Execute computes the result of the rpc call using the provided parameters
 	Execute(ctx context.Context, headers http.Header, id *string, params interface{}) (interface{}, error)
+	// ParametersValid returns true if the provided parameters can be used with this method
+	// The details returned can be used to explain why the parameters are not valid.
 	ParametersValid(ctx context.Context, params interface{}) ([]Detail, bool)
 }
 type Server interface {
@@ -109,6 +116,13 @@ func (j *jsonRPCServer) handleSingleRequest(ctx context.Context, writer http.Res
 }
 
 func (j *jsonRPCServer) handleBatchRequest(ctx context.Context, writer http.ResponseWriter, request *http.Request, batchJsonRequest BatchRequest) {
+	if len(batchJsonRequest) > j.opts.maxBatchSize {
+		writer.WriteHeader(http.StatusBadRequest)
+		if _, err := writer.Write(NewInvalidRequestError(nil, NewDetail("rationale", "Too many requests"), NewDetail("maxBatchSize", j.opts.maxBatchSize)).JSONRPCBytes()); err != nil {
+			slog.Error("Failed to write response body")
+		}
+		return
+	}
 	eg := errgroup.Group{}
 	eg.SetLimit(j.opts.batchRequestParallelism)
 	lock := sync.Mutex{}
@@ -118,10 +132,12 @@ func (j *jsonRPCServer) handleBatchRequest(ctx context.Context, writer http.Resp
 			resp, err := j.routeRequest(ctx, request, r)
 			lock.Lock()
 			defer lock.Unlock()
-			if err == nil {
-				responses = append(responses, resp)
-			} else {
-				responses = append(responses, err)
+			if r.ID != nil {
+				if err == nil {
+					responses = append(responses, resp)
+				} else {
+					responses = append(responses, err)
+				}
 			}
 			return nil
 		})
@@ -136,7 +152,7 @@ func (j *jsonRPCServer) handleBatchRequest(ctx context.Context, writer http.Resp
 	return
 }
 
-func (j *jsonRPCServer) routeRequest(ctx context.Context, request *http.Request, rpcRequest Request) (Response, error) {
+func (j *jsonRPCServer) routeRequest(ctx context.Context, request *http.Request, rpcRequest Request) (_ Response, err error) {
 	if rpcRequest.JSONRPC != "2.0" {
 		return Response{}, NewInvalidRequestError(rpcRequest.ID, NewDetail("rationale", "Only JSONRPC version 2 is supported"))
 	}
@@ -144,6 +160,7 @@ func (j *jsonRPCServer) routeRequest(ctx context.Context, request *http.Request,
 	if !ok {
 		return Response{}, NewMethodNotFoundError()
 	}
+	slog.Info("Received request", "log.type", "request.v1", "method", rpcRequest.Method)
 	if details, ok := handler.ParametersValid(ctx, rpcRequest.Params); !ok {
 		return Response{}, NewInvalidRequestError(rpcRequest.ID, details...)
 	}
